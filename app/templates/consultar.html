@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Consultar Egresado</title>
+  </head>
+  <body>
+    <h1>Consultar Egresado</h1>
+    <form method="POST" action="{{ url_for('main.consultar') }}">
+      {{ form.hidden_tag() }}
+      <p>
+        {{ form.cedula.label }}
+        {{ form.cedula }}
+      </p>
+      <p>
+        {{ form.submit }}
+      </p>
+    </form>
+    {% if egresados %}
+      <ul>
+        {% for egresado in egresados %}
+          <li>{{ egresado.nombre }} - {{ egresado.cedula }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </body>
+</html>
