@@ -29,36 +29,21 @@ class Periodo(db.Model):
     ano = db.Column(db.Integer)
     periodo = db.Column(db.String(1))
 
-#class RegistroEgresado(db.Model):
-#    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#    ag = db.Column(db.Numeric(10, 3))
-#    aa = db.Column(db.Numeric(10, 3))
-#    pg = db.Column(db.Numeric(10, 3))
-#    pa = db.Column(db.Numeric(10, 3))
-#    rendimiento = db.Column(db.Numeric(10, 2))
-#    fecha_grado = db.Column(db.String(10))
-#    cod_carrera = db.Column(db.Integer)
-#    cod_periodo = db.Column(db.String(5))
-#    num_periodo = db.Column(db.Integer)
-#   cedula = db.Column(db.String(10))
-#    nombre = db.Column(db.String(255))
-    
-#    def to_dict(self): 
-#        return { 
-#           'id': self.id, 
-#           'ag': self.ag, 
-#            'aa': self.aa, 
-#            'pg': self.pg, 
-#            'pa': self.pa, 
-#            'rendimiento': self.rendimiento, 
-#            'fecha_grado': self.fecha_grado, 
-#            'codigo_carrera': self.codigo_carrera, 
-#            'codigo_periodo': self.codigo_periodo, 
-#            'num_periodo': self.num_periodo, 
-#            'cedula': self.cedula, 
-#            'nombre': self.nombre 
-#        }
 from app import db
+
+#class RegistroEgresado(db.Model):
+#    id = db.Column(db.Integer, primary_key=True)
+#    ag = db.Column(db.String(10))
+#    aa = db.Column(db.String(10))
+#    pg = db.Column(db.String(10))
+#    pa = db.Column(db.String(10))
+#    rendimiento = db.Column(db.Float)
+#    fecha_grado = db.Column(db.Date)
+#    cod_carrera = db.Column(db.String(10))
+#    cod_periodo = db.Column(db.String(10))
+#    num_periodo = db.Column(db.String(10))
+#    cedula = db.Column(db.String(20))
+#    nombre = db.Column(db.String(50))
 
 class RegistroEgresado(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,6 +58,22 @@ class RegistroEgresado(db.Model):
     num_periodo = db.Column(db.String(10))
     cedula = db.Column(db.String(20))
     nombre = db.Column(db.String(50))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ag': self.ag,
+            'aa': self.aa,
+            'pg': self.pg,
+            'pa': self.pa,
+            'rendimiento': self.rendimiento,
+            'fecha_grado': self.fecha_grado,
+            'cod_carrera': self.cod_carrera,
+            'cod_periodo': self.cod_periodo,
+            'num_periodo': self.num_periodo,
+            'cedula': self.cedula,
+            'nombre': self.nombre
+        }
 
 
 

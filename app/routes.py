@@ -22,6 +22,7 @@ def login():
     user = Usuario.query.filter_by(nombre=username).first()
     
     if user and user.check_password(password) and user.p_acesso == 1:
+        login_user(user)  # Autenticar al usuario
         session['user_id'] = user.id
         return jsonify({'message': 'Inicio de sesión exitoso'}), 200
     else:
@@ -93,9 +94,9 @@ def eliminar(id):
     return redirect(url_for('main.index'))
 
 
-@bp.route('/consultar', methods=['GET'])
+@bp.route('/api/consultar', methods=['GET'])
 @login_required
-def consultar():
+def consultar_egresados():
     codigo_carrera = request.args.get('codigo_carrera')
     cedula = request.args.get('cedula')
     nombre = request.args.get('nombre')
@@ -104,13 +105,13 @@ def consultar():
     query = RegistroEgresado.query
 
     if codigo_carrera:
-        query = query.filter_by(codigo_carrera=codigo_carrera)
+        query = query.filter_by(cod_carrera=codigo_carrera)  # Asegurarse de usar 'cod_carrera'
     if cedula:
         query = query.filter_by(cedula=cedula)
     if nombre:
         query = query.filter(RegistroEgresado.nombre.ilike(f'%{nombre}%'))
     if codigo_periodo:
-        query = query.filter_by(codigo_periodo=codigo_periodo)
+        query = query.filter_by(cod_periodo=codigo_periodo)  # Asegurarse de usar 'cod_periodo'
 
     egresados = query.all()
 
