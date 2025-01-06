@@ -21,7 +21,7 @@ def login():
     
     user = Usuario.query.filter_by(nombre=username).first()
     
-    if user and user.check_password(password) and user.p_acesso == 1:
+    if user and user.check_password(password):
         login_user(user)  # Autenticar al usuario
         session['user_id'] = user.id
         return jsonify({'message': 'Inicio de sesión exitoso'}), 200
@@ -29,8 +29,10 @@ def login():
         return jsonify({'error': 'Usuario o contraseña incorrectos o acceso no permitido'}), 401
 
 
-@bp.route('/logout', methods=['POST'])
+@bp.route('/api/logout', methods=['POST'])
+@login_required
 def logout():
+    logout_user()
     session.pop('user_id', None)
     return jsonify({'message': 'Sesión cerrada'}), 200
 
@@ -116,5 +118,11 @@ def consultar_egresados():
     egresados = query.all()
 
     return jsonify([e.to_dict() for e in egresados])
+
+@bp.route('/api/get-username', methods=['GET'])
+@login_required
+def get_username():
+    return jsonify({'username': current_user.nombre}), 200
+
 
 

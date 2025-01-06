@@ -31,19 +31,6 @@ class Periodo(db.Model):
 
 from app import db
 
-#class RegistroEgresado(db.Model):
-#    id = db.Column(db.Integer, primary_key=True)
-#    ag = db.Column(db.String(10))
-#    aa = db.Column(db.String(10))
-#    pg = db.Column(db.String(10))
-#    pa = db.Column(db.String(10))
-#    rendimiento = db.Column(db.Float)
-#    fecha_grado = db.Column(db.Date)
-#    cod_carrera = db.Column(db.String(10))
-#    cod_periodo = db.Column(db.String(10))
-#    num_periodo = db.Column(db.String(10))
-#    cedula = db.Column(db.String(20))
-#    nombre = db.Column(db.String(50))
 
 class RegistroEgresado(db.Model):
     id = db.Column(db.Integer, primary_key=True)
