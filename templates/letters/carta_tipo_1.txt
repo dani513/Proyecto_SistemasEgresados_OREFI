@@ -1,0 +1,9 @@
+Membrete con Escudo
+
+Estimado/a {nombre},
+
+A través de la presente, certificamos que {nombre} ha cumplido con los requisitos académicos...
+
+Atentamente,
+Director de OREFI: {director}
+Decano: {decano}

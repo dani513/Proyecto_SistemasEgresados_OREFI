@@ -1,0 +1,7 @@
+Membrete con Escudo
+
+Con mucho gusto hacemos constar que {nombre} ha mostrado excelencia en su desempeño académico...
+hola mundo 
+Atentamente,
+Director de OREFI: {director}
+Decano: {decano}

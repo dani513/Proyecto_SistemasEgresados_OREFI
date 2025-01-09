@@ -1,0 +1,7 @@
+Membrete con Escudo
+
+Por medio de la presente, se confirma que {nombre} ha completado su formación profesional con honores...
+
+Atentamente,
+Director de OREFI: {director}
+Decano: {decano}

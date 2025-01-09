@@ -4,9 +4,10 @@ from app import db
 from app.models import Usuario, RegistroEgresado, Informacion
 from app.forms import LoginForm, EgresadoForm, ConsultaForm
 from werkzeug.security import check_password_hash
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
 import io
+import os
 
 
 bp = Blueprint('main', __name__)
@@ -164,6 +165,10 @@ def actualizar_informacion():
         return jsonify({'error': str(e)}), 500
 
 
+def read_template(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
 @bp.route('/api/generar-carta', methods=['GET'])
 @login_required
 def generar_carta():
@@ -176,29 +181,28 @@ def generar_carta():
     if not egresado or not info:
         return jsonify({'error': 'Datos no encontrados'}), 404
     
+    # Leer la plantilla de la carta
+    template_path = f'templates/letters/{tipo_carta}.txt'
+    if not os.path.exists(template_path):
+        return jsonify({'error': 'Tipo de carta no encontrado'}), 404
+
+    content = read_template(template_path)
+    content = content.format(
+        nombre=egresado.nombre,
+        director=info.director,
+        decano=info.decano
+    )
+
     # Crear el PDF
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
 
-    # Contenido ficticio de la carta
-    c.drawString(100, height - 100, f"Nombre del Egresado: {egresado.nombre}")
-    c.drawString(100, height - 120, f"Cédula: {egresado.cedula}")
-    c.drawString(100, height - 140, f"Código de Carrera: {egresado.cod_carrera}")
-    c.drawString(100, height - 160, f"Código de Período: {egresado.cod_periodo}")
+    y = height - 100  # Ajustar la posición inicial
 
-    if tipo_carta == 'carta_tipo_1':
-        c.drawString(100, height - 200, "Contenido de la Carta Tipo 1:")
-        c.drawString(100, height - 220, "A través de la presente, certificamos que el egresado ha cumplido con los requisitos académicos...")
-    elif tipo_carta == 'carta_tipo_2':
-        c.drawString(100, height - 200, "Contenido de la Carta Tipo 2:")
-        c.drawString(100, height - 220, "Con mucho gusto hacemos constar que el egresado ha mostrado excelencia en su desempeño \n académico...")
-    elif tipo_carta == 'carta_tipo_3':
-        c.drawString(100, height - 200, "Contenido de la Carta Tipo 3:")
-        c.drawString(100, height - 220, "Por medio de la presente, se confirma que el egresado ha completado su formación profesional con honores...")
-
-    c.drawString(100, height - 260, f"Director de OREFI: {info.director}")
-    c.drawString(100, height - 280, f"Decano: {info.decano}")
+    for line in content.split('\n'):
+        c.drawString(100, y, line)
+        y -= 20
 
     c.showPage()
     c.save()
