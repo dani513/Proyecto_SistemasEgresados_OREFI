@@ -1,0 +1,10 @@
+
+Estimado/a {nombre},
+
+A través de la presente, certificamos que {nombre} con la cédula 
+de identidad {cedula} ha cumplido con los requisitos académicos 
+con un promedio de {rendimiento} puntos.
+
+Atentamente,
+Director de OREFI: {director}
+Decano: {decano}
