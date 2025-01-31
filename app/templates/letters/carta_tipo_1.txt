@@ -1,10 +1,11 @@
 
-Estimado/a {nombre},
 
-A través de la presente, certificamos que {nombre} con la cédula 
-de identidad {cedula} ha cumplido con los requisitos académicos 
-con un promedio de {rendimiento} puntos.
+Quien suscribe, Director de la Oficina de Registros Estudiantiles de la Facultad de Ingenieria, de la Universidad de los Andes, por medio de la presente hace constar que el Ingeniero {nombre} titular de la CEDULA DE IDENTIDAD N°. {cedula} egreso de la Escuela de {cod_carrera} en el semestre {cod_periodo} con un promedio PONDERADO APROBATORIO DE {ponderadoaprobatorio} de puntos ocupando el lugar [posicion en promo] dentro de un grupo de [tamano de promo] graduados que alcanzo un promedio PONDERADO APROBATORIO de [promedio promo ponderado] puntos.
 
-Atentamente,
-Director de OREFI: {director}
-Decano: {decano}
+La escala de notas es de 0 a 20, con notas minimas aprobatorias de 10 puntos.
+
+SE EXPIDE ESTA CONSTANCIA A SOLICITUD DE PARTE INTERESADA EN LA CIUDAD DE MERIDA A LOS 
+[FECHA_EXPEDIDA_CARTA]
+
+{decano}                                        {director}
+Decano - Facultad de Ingenieria                 Director - OREFI

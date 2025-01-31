@@ -6,6 +6,10 @@ from app.forms import LoginForm, EgresadoForm, ConsultaForm
 from werkzeug.security import check_password_hash
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PlatypusImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
 from PIL import Image
 import io
 import os
@@ -177,7 +181,7 @@ def actualizar_informacion():
 def read_template(file_path):
     with open(file_path, 'r') as file:
         return file.read()
-
+##*********************************************************************************************************
 
 
 @bp.route('/api/generar-carta', methods=['GET'])
@@ -193,7 +197,8 @@ def generar_carta():
         return jsonify({'error': 'Datos no encontrados'}), 404
     
     # Verificar que las claves existen en `egresado`
-    if not all([getattr(egresado, key, None) for key in ['nombre', 'cedula', 'rendimiento']]):
+    required_keys = ['nombre', 'cedula', 'rendimiento', 'fecha_grado', 'ag', 'aa', 'pg', 'pa', 'cod_carrera', 'cod_periodo']
+    if not all([getattr(egresado, key, None) for key in required_keys]):
         return jsonify({'error': 'Datos incompletos del egresado'}), 404
 
     # Leer la plantilla de la carta
@@ -206,55 +211,55 @@ def generar_carta():
         nombre=egresado.nombre,
         cedula=egresado.cedula,
         rendimiento=egresado.rendimiento,
+        aritmeticoaprobatorio=egresado.aa,
+        ponderadoaprobatorio=egresado.pa,
+        frecha_grado=egresado.fecha_grado,
+        cod_periodo=egresado.cod_periodo,
+        cod_carrera=egresado.cod_carrera,
         director=info.director,
         decano=info.decano
     )
 
     # Crear el PDF
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=inch * 0.75, leftMargin=inch * 0.75,
+                            topMargin=inch * 0.75, bottomMargin=inch * 0.75)
+    elements = []
 
-    # Cargar el membrete utilizando ruta absoluta
+    # Estilos de párrafo
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY, leading=20, fontSize=13, fontName='Times-Roman'))  # leading=18 establece un interlineado de 1.5 y fontSize=14 aumenta el tamaño de la letra y fontName='Times-Roman' establece la fuente
+    styles.add(ParagraphStyle(name='Centered', alignment=TA_CENTER, fontSize=24, spaceAfter=20, fontName='Times-Roman'))  # fontSize=22 aumenta el tamaño de la letra para el título y fontName='Times-Roman' establece la fuente
+
+    # Membrete
     base_path = os.path.dirname(os.path.abspath(__file__))
     membrete_path = os.path.join(base_path, 'static', 'img', 'membrete.png')
 
-    # Aumentar el tamaño del membrete
-    membrete_height = 85  # Ajusta la altura del membrete según sea necesario
-    membrete_width = width - 30  # Aumenta el ancho del membrete para ocupar todo el ancho de la página
-
     # Verificar si el archivo existe y es accesible
-    try:
-        img_membrete = Image.open(membrete_path)
-    except Exception as e:
-        return jsonify({'error': f'Error al abrir la imagen del membrete: {str(e)}'}), 500
+    if os.path.exists(membrete_path):
+        elements.append(PlatypusImage(membrete_path, width=doc.width, height=85))
+        elements.append(Spacer(1, 12))
 
-    try:
-        c.drawImage(membrete_path, 15, height - 100, width=membrete_width, height=membrete_height, preserveAspectRatio=True, mask='auto')
-    except Exception as e:
-        return jsonify({'error': f'Error al cargar la imagen del membrete en el PDF: {str(e)}'}), 500
+    # Título
+    elements.append(Paragraph("CONSTANCIA", styles['Centered']))
 
-    # Ajustar el texto para que se vea limpio y ordenado
-    def draw_text(c, text, x, y, width, font_name="Helvetica", font_size=12, align="left"):
-        c.setFont(font_name, font_size)
-        if align == "center":
-            text_width = c.stringWidth(text, font_name, font_size)
-            x = (width - text_width) / 2
-        c.drawString(x, y, text)
-
-    y = height - 150  # Ajustar la posición inicial para dejar espacio al membrete
-
+    # Contenido justificado
     for line in content.split('\n'):
-        draw_text(c, line, 100, y, width - 200, align="left")
-        y -= 20
+        elements.append(Paragraph(line, styles['Justify']))
+        elements.append(Spacer(1, 12))
 
-    c.showPage()
-    c.save()
+    doc.build(elements)
 
     buffer.seek(0)
     return send_file(buffer, as_attachment=False, mimetype='application/pdf')
 
+def read_template(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
 
+
+##****************************************************************************************************
 
 
 @bp.route('/api/listado-promocion', methods=['GET'])
