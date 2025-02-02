@@ -1,18 +1,21 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session, send_file
 from flask_login import login_user, logout_user, current_user, login_required
 from app import db
-from app.models import Usuario, RegistroEgresado, Informacion
+from app.models import Usuario, RegistroEgresado, Informacion, Carrera, Periodo
 from app.forms import LoginForm, EgresadoForm, ConsultaForm
 from werkzeug.security import check_password_hash
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PlatypusImage
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PlatypusImage, Table, TableStyle
+from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
 from PIL import Image
 import io
 import os
+import datetime
+from app.utils import convertir_fecha_a_texto
 
 
 bp = Blueprint('main', __name__)
@@ -169,7 +172,7 @@ def actualizar_informacion():
     data = request.get_json()
     try:
         info = db.session.query(Informacion).first()
-        info.director_ = data['director']
+        info.director = data['director']
         info.decano = data['decano']
         db.session.commit()
         return jsonify({'message': 'Información actualizada con éxito'}), 200
@@ -192,10 +195,42 @@ def generar_carta():
     
     egresado = RegistroEgresado.query.filter_by(cedula=cedula).first()
     info = db.session.query(Informacion).first()
+    carrera = db.session.query(Carrera).filter_by(cod_carrera=egresado.cod_carrera).first()
+    periodo = db.session.query(Periodo).filter_by(cod_periodo=egresado.cod_periodo).first()
+    usuario = current_user.nombre  # Obtener el nombre de usuario del usuario que imprimió la carta
 
-    if not egresado or not info:
+    if not egresado or not info or not carrera or not periodo:
         return jsonify({'error': 'Datos no encontrados'}), 404
+
+    # Obtener el grupo de promoción
+    promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.pa.desc()).all()
+
+    # Calcular las posiciones y el promedio de pa
+    posiciones = {}
+    posicion_actual = 1
+    total_pa = 0.0  # Asegurarnos de que el total es un número
+    for index, estudiante in enumerate(promocion):
+        pa_val = float(estudiante.pa)  # Convertir pa a número
+        total_pa += pa_val
+        if pa_val not in posiciones:
+            posiciones[pa_val] = posicion_actual
+        else:
+            posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+        posicion_actual += 1
     
+    # Obtener la posición del egresado en la promoción
+    posicion = posiciones.get(float(egresado.pa), None)  # Convertir pa a número
+    
+    # Número total de integrantes en la promoción
+    total_integrantes = len(promocion)
+    
+    # Calcular el promedio de pa
+    promedio_pa = total_pa / total_integrantes if total_integrantes > 0 else 0
+    
+    # Obtener la fecha actual en formato texto
+    fecha_actual = datetime.datetime.now()
+    fecha_actual_texto = convertir_fecha_a_texto(fecha_actual)
+
     # Verificar que las claves existen en `egresado`
     required_keys = ['nombre', 'cedula', 'rendimiento', 'fecha_grado', 'ag', 'aa', 'pg', 'pa', 'cod_carrera', 'cod_periodo']
     if not all([getattr(egresado, key, None) for key in required_keys]):
@@ -214,10 +249,14 @@ def generar_carta():
         aritmeticoaprobatorio=egresado.aa,
         ponderadoaprobatorio=egresado.pa,
         frecha_grado=egresado.fecha_grado,
-        cod_periodo=egresado.cod_periodo,
-        cod_carrera=egresado.cod_carrera,
+        cod_periodo=f"{periodo.periodo} del año {periodo.ano}",  # Usar el año y el período
+        cod_carrera=carrera.nombre,  # Usar el nombre de la carrera
+        posicion=posicion,  # Posición en la promoción
+        total_integrantes=total_integrantes,  # Total de integrantes en la promoción
+        promedio_pa=promedio_pa,  # Promedio de pa en la promoción
         director=info.director,
-        decano=info.decano
+        decano=info.decano,
+        fecha_actual_texto=fecha_actual_texto  # Fecha actual en texto
     )
 
     # Crear el PDF
@@ -229,8 +268,8 @@ def generar_carta():
 
     # Estilos de párrafo
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY, leading=20, fontSize=13, fontName='Times-Roman'))  # leading=18 establece un interlineado de 1.5 y fontSize=14 aumenta el tamaño de la letra y fontName='Times-Roman' establece la fuente
-    styles.add(ParagraphStyle(name='Centered', alignment=TA_CENTER, fontSize=24, spaceAfter=20, fontName='Times-Roman'))  # fontSize=22 aumenta el tamaño de la letra para el título y fontName='Times-Roman' establece la fuente
+    styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY, leading=18, fontSize=14, fontName='Times-Roman'))
+    styles.add(ParagraphStyle(name='Centered', alignment=TA_CENTER, fontSize=22, spaceAfter=20, fontName='Times-Roman'))
 
     # Membrete
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -239,7 +278,7 @@ def generar_carta():
     # Verificar si el archivo existe y es accesible
     if os.path.exists(membrete_path):
         elements.append(PlatypusImage(membrete_path, width=doc.width, height=85))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 36))  # Aumentar el espacio entre el membrete y el título
 
     # Título
     elements.append(Paragraph("CONSTANCIA", styles['Centered']))
@@ -249,6 +288,31 @@ def generar_carta():
         elements.append(Paragraph(line, styles['Justify']))
         elements.append(Spacer(1, 12))
 
+    # Tabla para Decano y Director
+    table_data = [
+        [
+            Paragraph(f"<b>{info.decano}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman')),
+            Paragraph(f"<b>{info.director}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman'))
+        ],
+        [
+            Paragraph("Decano - Facultad de Ingeniería", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=8, fontName='Times-Roman')),
+            Paragraph("Director - OREFI", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=8, fontName='Times-Roman'))
+        ]
+    ]
+    table = Table(table_data, colWidths=[doc.width / 2.0] * 2)
+    table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman')
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 36))  # Espacio antes del pie de página
+
+    # Agregar el usuario que imprimió la carta
+    elements.append(Paragraph(f"Impreso por: {usuario}", styles['Justify']))
+
     doc.build(elements)
 
     buffer.seek(0)
@@ -257,7 +321,6 @@ def generar_carta():
 def read_template(file_path):
     with open(file_path, 'r') as file:
         return file.read()
-
 
 ##****************************************************************************************************
 
