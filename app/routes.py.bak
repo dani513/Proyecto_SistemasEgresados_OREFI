@@ -92,7 +92,7 @@ def consultar_egresados():
     codigo_periodo = request.args.get('codigo_periodo')
 
     query = RegistroEgresado.query
-    coincidencias = set()
+coincidencias = set()
 
    
     if codigo_carrera or cedula or nombre or codigo_periodo:
@@ -129,7 +129,6 @@ def eliminar(id):
 
 @bp.route('/api/consultar/<int:id>', methods=['GET'])
 @login_required
-@cross_origin(origin='http://localhost:5173') 
 def consultar_egresado(id):
     egresado = RegistroEgresado.query.get_or_404(id)
     return jsonify(egresado.to_dict())
