@@ -15,7 +15,7 @@ from PIL import Image
 import io
 import os
 import datetime
-from app.utils import convertir_fecha_a_texto
+from app.utils import convertir_fecha_a_texto, numero_a_ordinal, numero_a_texto
 
 
 bp = Blueprint('main', __name__)
@@ -186,6 +186,15 @@ def read_template(file_path):
         return file.read()
 ##*********************************************************************************************************
 
+#(listo) carta tipo 1: promedio PONDERADO APROBATORIO, posicion respecto a la promocion (puesto ponderado aprobatorio)
+#(listo) carta tipo 2: promedio ARITMETICO APROBATORIO, posicion respecto a la promocion (puesto aritmetico aprobatorio)
+
+#() carta tipo 3: promedio PONDERADO APROBATORIO, posicion respecto a la promocion, con rendimiento (puesto ponderado con eficiencia)
+#() carta tipo 4: promedio ARITMETICO APROBATORIO, posicion respecto a la promocion, con rendimiento (puesto aritmetico con eficiencia)
+
+#() carta tipo 5: promedio ARITMETICO GENERAL, posicion respecto a todos los graduados de la ESCUELA (puesto aritmetico general por escuela)
+#() carta tipo 6: promedio ARITMETICO GENERAL, posicion respecto a todos los graduados en la FACULTAD (puesto aritmetico general en la facultad)
+
 
 @bp.route('/api/generar-carta', methods=['GET'])
 @login_required
@@ -202,31 +211,169 @@ def generar_carta():
     if not egresado or not info or not carrera or not periodo:
         return jsonify({'error': 'Datos no encontrados'}), 404
 
-    # Obtener el grupo de promoción
-    promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.pa.desc()).all()
+    # Obtener el grupo de promoción, escuela o facultad sengun la carta selecionada
+    
+    if tipo_carta == "carta_tipo_1": # trabaja con pa
+        
+        promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.pa.desc()).all()
+        # Calcular las posiciones y el promedio de pa
+        posiciones = {}
+        posicion_actual = 1
+        
+        total_pa = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(promocion):
+            pa_val = float(estudiante.pa)  # Convertir pa a número
+            total_pa += pa_val
+            if pa_val not in posiciones:
+                posiciones[pa_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+            posicion_actual += 1
+        
+        # Obtener la posición del egresado en la promoción
+        posicion = posiciones.get(float(egresado.pa), None)  # Convertir pa a número
+        pos_escrita = numero_a_ordinal(posicion) #escribir de forma ordinal
+        # Número total de integrantes en la promoción
+        total_integrantes = len(promocion)
 
-    # Calcular las posiciones y el promedio de pa
-    posiciones = {}
-    posicion_actual = 1
-    total_pa = 0.0  # Asegurarnos de que el total es un número
-    for index, estudiante in enumerate(promocion):
-        pa_val = float(estudiante.pa)  # Convertir pa a número
-        total_pa += pa_val
-        if pa_val not in posiciones:
-            posiciones[pa_val] = posicion_actual
-        else:
-            posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
-        posicion_actual += 1
+        # Calcular el promedio de pa
+        promedio_promo = total_pa / total_integrantes if total_integrantes > 0 else 0
+            
     
-    # Obtener la posición del egresado en la promoción
-    posicion = posiciones.get(float(egresado.pa), None)  # Convertir pa a número
-    
-    # Número total de integrantes en la promoción
-    total_integrantes = len(promocion)
-    
-    # Calcular el promedio de pa
-    promedio_pa = total_pa / total_integrantes if total_integrantes > 0 else 0
-    
+    elif tipo_carta == "carta_tipo_2": # trabaja con aa
+        promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.aa.desc()).all()
+        # Calcular las posiciones y el promedio de aa
+        posiciones = {}
+        posicion_actual = 1
+        
+        total_aa = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(promocion):
+            aa_val = float(estudiante.aa)  # Convertir pa a número
+            total_aa += aa_val
+            if aa_val not in posiciones:
+                posiciones[aa_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+            posicion_actual += 1
+        
+        # Obtener la posición del egresado en la promoción
+        posicion = posiciones.get(float(egresado.aa), None)  # Convertir pa a número
+        pos_escrita = numero_a_ordinal(posicion)
+
+        # Número total de integrantes en la promoción
+        total_integrantes = len(promocion)
+        
+        # Calcular el promedio de aa
+        promedio_promo = total_aa / total_integrantes if total_integrantes > 0 else 0
+        
+        
+    elif tipo_carta == "carta_tipo_3": #trabaja con pa y rendimiento 
+        
+        promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.pa.desc()).all()
+        # Calcular las posiciones y el promedio de pa
+        posiciones = {}
+        posicion_actual = 1
+        
+        total_pa = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(promocion):
+            pa_val = float(estudiante.pa)  # Convertir pa a número
+            total_pa += pa_val
+            if pa_val not in posiciones:
+                posiciones[pa_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+            posicion_actual += 1
+        
+        # Obtener la posición del egresado en la promoción
+        posicion = posiciones.get(float(egresado.pa), None)  # Convertir pa a número
+        pos_escrita = numero_a_ordinal(posicion)
+
+        # Número total de integrantes en la promoción
+        total_integrantes = len(promocion)
+
+        # Calcular el promedio de pa
+        promedio_promo = total_pa / total_integrantes if total_integrantes > 0 else 0
+        
+        
+    elif tipo_carta == "carta_tipo_4":
+        
+        promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.aa.desc()).all()
+        # Calcular las posiciones y el promedio de aa
+        posiciones = {}
+        posicion_actual = 1
+        
+        total_aa = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(promocion):
+            aa_val = float(estudiante.aa)  # Convertir pa a número
+            total_aa += aa_val
+            if aa_val not in posiciones:
+                posiciones[aa_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+            posicion_actual += 1
+        
+        # Obtener la posición del egresado en la promoción
+        posicion = posiciones.get(float(egresado.aa), None)  # Convertir pa a número
+        pos_escrita = numero_a_ordinal(posicion)
+
+        # Número total de integrantes en la promoción
+        total_integrantes = len(promocion)
+        
+        # Calcular el promedio de aa
+        promedio_promo = total_aa / total_integrantes if total_integrantes > 0 else 0
+
+    elif tipo_carta == "carta_tipo_5":  # trabaja con ag y cod_carrera
+        egresados_carrera = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera).order_by(RegistroEgresado.ag.desc()).all()
+        # Calcular las posiciones y el promedio de ag
+        posiciones = {}
+        posicion_actual = 1
+            
+        total_ag = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(egresados_carrera):
+            ag_val = float(estudiante.ag)  # Convertir pa a número
+            total_ag += ag_val
+            if ag_val not in posiciones:
+                posiciones[ag_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo pa
+            posicion_actual += 1
+            
+        # Obtener la posición del egresado en la carrera
+        posicion = posiciones.get(float(egresado.ag), None)  # Convertir pa a número
+        pos_escrita = numero_a_texto(posicion)
+        
+        # Número total de integrantes en la carrera
+        total_integrantes = len(egresados_carrera)
+
+        # Calcular el promedio de pa
+        promedio_promo = total_ag / total_integrantes if total_integrantes > 0 else 0
+
+    elif tipo_carta == "carta_tipo_6":  # trabaja con ag y todos los graduados en la facultad
+        egresados_facultad = RegistroEgresado.query.order_by(RegistroEgresado.ag.desc()).all()
+        # Calcular las posiciones y el promedio de aa
+        posiciones = {}
+        posicion_actual = 1
+
+        total_ag = 0.0  # Asegurarnos de que el total es un número
+        for index, estudiante in enumerate(egresados_facultad):
+            ag_val = float(estudiante.aa)  # Convertir aa a número
+            total_ag += ag_val
+            if ag_val not in posiciones:
+                posiciones[ag_val] = posicion_actual
+            else:
+                posicion_actual -= 1  # Mantener la misma posición para los estudiantes con el mismo aa
+            posicion_actual += 1
+
+        # Obtener la posición del egresado en la facultad
+        posicion = posiciones.get(float(egresado.ag), None)  # Convertir aa a número
+        pos_escrita = numero_a_texto(posicion)
+
+        # Número total de integrantes en la facultad
+        total_integrantes = len(egresados_facultad)
+
+        # Calcular el promedio de aa
+        promedio_promo = total_ag / total_integrantes if total_integrantes > 0 else 0
+
     # Obtener la fecha actual en formato texto
     fecha_actual = datetime.datetime.now()
     fecha_actual_texto = convertir_fecha_a_texto(fecha_actual)
@@ -247,13 +394,15 @@ def generar_carta():
         cedula=egresado.cedula,
         rendimiento=egresado.rendimiento,
         aritmeticoaprobatorio=egresado.aa,
+        aritmetico_general=egresado.ag,
         ponderadoaprobatorio=egresado.pa,
         frecha_grado=egresado.fecha_grado,
         cod_periodo=f"{periodo.periodo} del año {periodo.ano}",  # Usar el año y el período
         cod_carrera=carrera.nombre,  # Usar el nombre de la carrera
-        posicion=posicion,  # Posición en la promoción
+        posicion=posicion,  # Posición en la promoción, escuela o facultad
+        pos_escrita=pos_escrita, #posicion escrita de forma ordinal
         total_integrantes=total_integrantes,  # Total de integrantes en la promoción
-        promedio_pa=promedio_pa,  # Promedio de pa en la promoción
+        promedio_promo=promedio_promo,  # Promedio de pa en la promoción
         director=info.director,
         decano=info.decano,
         fecha_actual_texto=fecha_actual_texto  # Fecha actual en texto
@@ -291,12 +440,12 @@ def generar_carta():
     # Tabla para Decano y Director
     table_data = [
         [
-            Paragraph(f"<b>{info.decano}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman')),
-            Paragraph(f"<b>{info.director}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman'))
+            Paragraph(f"<b>{info.decano}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=12, fontName='Times-Roman')),
+            Paragraph(f"<b>{info.director}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=12, fontName='Times-Roman'))
         ],
         [
-            Paragraph("Decano - Facultad de Ingeniería", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=8, fontName='Times-Roman')),
-            Paragraph("Director - OREFI", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=8, fontName='Times-Roman'))
+            Paragraph("Decano - Facultad de Ingeniería", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman')),
+            Paragraph("Director - OREFI", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman'))
         ]
     ]
     table = Table(table_data, colWidths=[doc.width / 2.0] * 2)
@@ -323,7 +472,9 @@ def read_template(file_path):
         return file.read()
 
 ##****************************************************************************************************
-
+# lista 1: Puestos de promocion por el promedio ponderado aprobatorio (pa) 
+# lista 2: Puestos de promocion por el promedio aritmetico aprobatorio (aa)
+# lista 3: Listado alfabetico
 
 @bp.route('/api/listado-promocion', methods=['GET'])
 @login_required
@@ -334,7 +485,7 @@ def listado_promocion():
     if not codigo_carrera or not codigo_periodo:
         return jsonify({'error': 'Faltan datos'}), 400
 
-    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(RegistroEgresado.rendimiento.desc()).all()
+    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(RegistroEgresado.pa.desc()).all()
 
     if not egresados:
         return jsonify({'error': 'No se encontraron egresados'}), 404
@@ -350,15 +501,15 @@ def generar_listado_promocion():
     if not codigo_carrera or not codigo_periodo:
         return jsonify({'error': 'Faltan datos'}), 400
 
-    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(RegistroEgresado.rendimiento.desc()).all()
+    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(RegistroEgresado.pa.desc()).all()
     info = db.session.query(Informacion).first()
 
     if not egresados:
         return jsonify({'error': 'No se encontraron egresados'}), 404
 
     # Calcular el promedio general
-    total_rendimiento = sum(egresado.rendimiento for egresado in egresados)
-    promedio_general = total_rendimiento / len(egresados) if egresados else 0
+    total_pa = sum(float(egresado.pa) for egresado in egresados)
+    promedio_general = total_pa / len(egresados) if egresados else 0
 
     # Crear el PDF
     buffer = io.BytesIO()
@@ -403,7 +554,7 @@ def generar_listado_promocion():
         c.drawString(50, y, str(idx))
         c.drawString(100, y, egresado.cedula)
         c.drawString(200, y, egresado.nombre)
-        c.drawString(400, y, str(egresado.rendimiento))
+        c.drawString(400, y, str(float(egresado.pa)))
         c.drawString(480, y, str(idx))
         y -= 20
         if y < 50:  # Salto de página si se llena

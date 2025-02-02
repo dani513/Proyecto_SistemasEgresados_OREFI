@@ -1,6 +1,6 @@
 
 
-Quien suscribe, Director de la Oficina de Registros Estudiantiles de la Facultad de Ingenieria, de la Universidad de los Andes, por medio de la presente hace constar que el Ingeniero {nombre} titular de la CEDULA DE IDENTIDAD N°. {cedula} egreso de la Escuela de {cod_carrera} en el semestre {cod_periodo} con un promedio PONDERADO APROBATORIO DE {ponderadoaprobatorio} de puntos ocupando el lugar {posicion} dentro de un grupo de {total_integrantes} graduados que alcanzo un promedio PONDERADO APROBATORIO de {promedio_pa} puntos.
+Quien suscribe, Director de la Oficina de Registros Estudiantiles de la Facultad de Ingenieria, de la Universidad de los Andes, por medio de la presente hace constar que el Ingeniero {nombre} titular de la CEDULA DE IDENTIDAD N°. {cedula} egreso de la Escuela de {cod_carrera} en el semestre {cod_periodo} con un promedio PONDERADO APROBATORIO DE {ponderadoaprobatorio} de puntos ocupando el lugar {posicion}, {pos_escrita} dentro de un grupo de {total_integrantes} graduados que alcanzo un promedio PONDERADO APROBATORIO de {promedio_promo} puntos.
 
 La escala de notas es de 0 a 20, con notas minimas aprobatorias de 10 puntos.
 

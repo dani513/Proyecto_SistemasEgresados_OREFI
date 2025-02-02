@@ -1,0 +1,12 @@
+
+
+Quien suscribe, Director de la Oficina de Registros Estudiantiles de la Facultad de Ingenieria, de la Universidad de los Andes, por medio de la presente hace constar que el Ingeniero {nombre} titular de la CEDULA DE IDENTIDAD N°. {cedula} egreso de la Escuela de {cod_carrera} en el semestre {cod_periodo} con un promedio ARITMETICO GENERAL DE {aritmetico_general} de puntos ocupando el lugar {posicion}, {pos_escrita} dentro de un grupo de {total_integrantes} graduados que alcanzo entre todas las PROMOCIONES y ESCUELAS de la Facultad un promedio ARITMETICO GENERAL de {promedio_promo} puntos.
+
+La escala de notas es de 0 a 20, con notas minimas aprobatorias de 10 puntos.
+
+SE EXPIDE ESTA CONSTANCIA A SOLICITUD DE PARTE INTERESADA EN LA CIUDAD DE MERIDA A LOS {fecha_actual_texto}
+
+
+
+
+

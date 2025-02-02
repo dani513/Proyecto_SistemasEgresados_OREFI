@@ -19,9 +19,15 @@
         <p><strong>Rendimiento:</strong> {{ egresado.rendimiento }}</p>
         <!-- Añade más campos según sea necesario -->
         <div class="buttons">
-          <button @click="generateLetter('carta_tipo_1')">Carta Tipo 1</button>
-          <button @click="generateLetter('carta_tipo_2')">Carta Tipo 2</button>
-          <button @click="generateLetter('carta_tipo_3')">Carta Tipo 3</button>
+          <button @click="generateLetter('carta_tipo_1')">Puesto Pond_Apro</button>
+          <button @click="generateLetter('carta_tipo_2')">Puesto Arit_ Apro</button>
+
+          <button @click="generateLetter('carta_tipo_3')">Puesto Pond_ Apro_rend</button>
+          <button @click="generateLetter('carta_tipo_4')">Puesto Arit_ Apro_rend</button>
+
+          <button @click="generateLetter('carta_tipo_5')">Puesto Arit_gen_escuela</button>
+          <button @click="generateLetter('carta_tipo_6')">Puesto Arit_gen_facultad</button>
+
         </div>
       </div>
     </div>
