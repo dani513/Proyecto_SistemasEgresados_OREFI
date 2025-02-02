@@ -28,4 +28,8 @@ def create_app(config_class=Config):
     from app import routes, models
     app.register_blueprint(routes.bp)
 
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Cambiar a 'None' si necesitas solicitudes cross-origin con HTTPS
+    app.config['SESSION_COOKIE_SECURE'] = True 
+
     return app
