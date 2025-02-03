@@ -9,6 +9,12 @@ class CambioNumerico(db.Model):
 class Carrera(db.Model):
     cod_carrera = db.Column(db.Integer, primary_key=True, default=0)
     nombre = db.Column(db.String(50))
+    
+    def to_dict(self):
+        return {
+            'cod_carrera': self.cod_carrera,
+            'nombre': self.nombre
+        }
 
 class EstadoPeriodo(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -28,9 +34,13 @@ class Periodo(db.Model):
     cod_periodo = db.Column(db.String(5), primary_key=True, nullable=False, default='')
     ano = db.Column(db.Integer)
     periodo = db.Column(db.String(1))
-
-from app import db
-
+    
+    def to_dict(self):
+        return {
+            'cod_periodo': self.cod_periodo,
+            'ano': self.ano,
+            'periodo': self.periodo
+        }
 
 class RegistroEgresado(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -476,6 +476,20 @@ def read_template(file_path):
 # lista 2: Puestos de promocion por el promedio aritmetico aprobatorio (aa)
 # lista 3: Listado alfabetico
 
+
+@bp.route('/api/carreras', methods=['GET'])
+@login_required
+def obtener_carreras():
+    carreras = Carrera.query.all()
+    return jsonify([carrera.to_dict() for carrera in carreras])
+
+@bp.route('/api/periodos', methods=['GET'])
+@login_required
+def obtener_periodos():
+    periodos_permitidos = ['A', 'B', 'U', 'E', 'I']
+    periodos = Periodo.query.filter(Periodo.periodo.in_(periodos_permitidos)).all()
+    return jsonify([periodo.to_dict() for periodo in periodos])
+
 @bp.route('/api/listado-promocion', methods=['GET'])
 @login_required
 def listado_promocion():
@@ -497,32 +511,50 @@ def listado_promocion():
 def generar_listado_promocion():
     codigo_carrera = request.args.get('codigo_carrera')
     codigo_periodo = request.args.get('codigo_periodo')
+    tipo_lista = request.args.get('tipo_lista')  # Obtener el tipo de lista
 
-    if not codigo_carrera or not codigo_periodo:
+    if not codigo_carrera or not codigo_periodo or not tipo_lista:
         return jsonify({'error': 'Faltan datos'}), 400
 
-    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(RegistroEgresado.pa.desc()).all()
+    if tipo_lista == "tipo1":
+        orden = RegistroEgresado.pa.desc()
+        campo = "pa"
+        titulo = "Cuadro de Promoción por el Promedio Ponderado"
+    elif tipo_lista == "tipo2":
+        orden = RegistroEgresado.aa.desc()
+        campo = "aa"
+        titulo = "Cuadro de Promoción por el Promedio Aritmético"
+    elif tipo_lista == "tipo3":
+        orden = RegistroEgresado.nombre.asc()
+        campo = "nombre"
+        titulo = "Cuadro de Promoción en Orden Alfabético"
+    else:
+        return jsonify({'error': 'Tipo de lista no válido'}), 400
+
+    egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(orden).all()
     info = db.session.query(Informacion).first()
 
     if not egresados:
         return jsonify({'error': 'No se encontraron egresados'}), 404
 
     # Calcular el promedio general
-    total_pa = sum(float(egresado.pa) for egresado in egresados)
-    promedio_general = total_pa / len(egresados) if egresados else 0
+    if tipo_lista != "tipo3":
+        total_campo = sum(float(getattr(egresado, campo)) for egresado in egresados)
+        promedio_general = total_campo / len(egresados) if egresados else 0
 
     # Crear el PDF
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
+    margin = 50  # Margen para ambos lados
 
     # Cargar el membrete utilizando ruta absoluta
     base_path = os.path.dirname(os.path.abspath(__file__))
     membrete_path = os.path.join(base_path, 'static', 'img', 'membrete.png')
 
-    # Ajustar el tamaño del membrete
+    # Ajustar el tamaño del membrete para ocupar todo el ancho
     membrete_height = 85  # Ajusta la altura del membrete según sea necesario
-    membrete_width = width - 30  # Aumenta el ancho del membrete para ocupar casi todo el ancho de la página
+    membrete_width = width - 2 * margin  # Aumenta el ancho del membrete para ocupar casi todo el ancho de la página
 
     # Verificar si el archivo existe y es accesible
     try:
@@ -531,50 +563,71 @@ def generar_listado_promocion():
         return jsonify({'error': f'Error al abrir la imagen del membrete: {str(e)}'}), 500
 
     try:
-        c.drawImage(membrete_path, 15, height - 100, width=membrete_width, height=membrete_height, preserveAspectRatio=True, mask='auto')
+        c.drawImage(membrete_path, margin, height - 100, width=membrete_width, height=membrete_height, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         return jsonify({'error': f'Error al cargar la imagen del membrete en el PDF: {str(e)}'}), 500
 
     # Configurar el encabezado del listado
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(100, height - 150, f"Listado de Egresados - Carrera: {codigo_carrera} - Período: {codigo_periodo}")
+    c.setFont("Helvetica-Bold", 14)
+    # Título de la lista
+    c.drawString(margin + 50, height - 150, f"EGRESADOS       {codigo_periodo}              Escuela de la promoción")
+
+    # Líneas horizontales al principio de la lista
+    c.line(margin, height - 180, width - margin, height - 180)
 
     # Configurar la tabla con los datos
-    y = height - 180  # Posición inicial
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(20, y, "SECUENCIA")
-    c.drawString(100, y, "CÉDULA")
-    c.drawString(200, y, "APELLIDO Y NOMBRE")
-    c.drawString(400, y, "PROMEDIO")
-    c.drawString(480, y, "LUGAR")
-    y -= 20
+    y = height - 200  # Posición inicial
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(margin + 25, y, "SECUENCIA")
+    c.drawCentredString(margin + 75, y, "CÉDULA")
+    c.drawString(margin + 120, y, "APELLIDO Y NOMBRE")
+    if tipo_lista != "tipo3":
+        c.drawCentredString(margin + 380, y, "PROMEDIO")
+    c.drawCentredString(margin + 440, y, "LUGAR")
+    y -= 15
 
-    c.setFont("Helvetica", 12)
+    c.setFont("Helvetica", 10)
+
+    # Calcular posiciones con empate
+    posicion_actual = 1
+    posiciones = {}
+    for idx, egresado in enumerate(egresados):
+        valor_campo = float(getattr(egresado, campo))
+        if valor_campo not in posiciones:
+            posiciones[valor_campo] = posicion_actual
+        posicion_actual += 1
+
     for idx, egresado in enumerate(egresados, start=1):
-        c.drawString(50, y, str(idx))
-        c.drawString(100, y, egresado.cedula)
-        c.drawString(200, y, egresado.nombre)
-        c.drawString(400, y, str(float(egresado.pa)))
-        c.drawString(480, y, str(idx))
-        y -= 20
+        c.drawCentredString(margin + 25, y, str(idx))
+        c.drawCentredString(margin + 75, y, egresado.cedula)
+        c.drawString(margin + 120, y, egresado.nombre)
+        if tipo_lista != "tipo3":
+            c.drawCentredString(margin + 380, y, str(float(getattr(egresado, campo))))
+        c.drawCentredString(margin + 440, y, str(posiciones[float(getattr(egresado, campo))]))
+        y -= 15
         if y < 50:  # Salto de página si se llena
             c.showPage()
             y = height - 50
 
+    # Añadir un pequeño espacio después del último egresado
+    y -= 10
+
+    # Líneas horizontales al final de la lista
+    c.line(margin, y, width - margin, y)
+
     # Añadir el promedio general, nombres del decano y director
-    c.setFont("Helvetica", 12)
-    c.drawString(100, y - 20, f"PROMEDIO GENERAL: {promedio_general:.3f}")
-    y -= 40
-    c.drawString(100, y - 20, f"{info.director}")
-    c.drawString(100, y - 40, "Director(a) - OREFI")
-    y -= 60
-    c.drawString(100, y - 20, f"{info.decano}")
-    c.drawString(100, y - 40, "Decano - Facultad de Ingeniería")
-    y -= 60
-    c.drawString(100, y - 20, "Cuadro de Promoción por el Promedio Ponderado")
+    if tipo_lista != "tipo3":
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(width - margin - 170, y - 20, f"PROMEDIO GENERAL: {promedio_general:.3f}")
+
+    c.drawString(margin + 10, y - 50, f"{info.director}")
+    c.drawString(margin + 10, y - 70, "Director(a) - OREFI")
+    c.drawString(margin + 10, y - 110, f"{info.decano}")
+    c.drawString(margin + 10, y - 130, "Decano - Facultad de Ingeniería")
+    c.drawString(margin + 10, y - 170, titulo)
 
     c.showPage()
     c.save()
 
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, mimetype='application/pdf', download_name="Listado_Promocion.pdf")
+    return send_file(buffer, as_attachment=False, mimetype='application/pdf', download_name="Listado_Promocion.pdf")
