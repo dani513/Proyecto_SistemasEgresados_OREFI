@@ -27,6 +27,8 @@
         <option value="I">I</option>
       </select>
     </div>
+    <button @click="buscarEgresados">Buscar</button>
+
     <div>
       <label for="tipo_lista">Tipo de Lista:</label>
       <select v-model="tipoLista" required>
@@ -35,13 +37,12 @@
         <option value="tipo3">Cuadro de Promoción en Orden Alfabético</option>
       </select>
     </div>
-    <button @click="buscarEgresados">Buscar</button>
     
     <div v-if="egresados.length > 0">
       <h3>Resultados:</h3>
       <ul>
         <li v-for="egresado in egresados" :key="egresado.cedula">
-          {{ egresado.nombre }} - {{ egresado.cedula }} - {{ egresado.rendimiento }}
+          {{ egresado.nombre }} - {{ egresado.cedula }} - {{ egresado.aa }} - {{ egresado.pa }}
         </li>
       </ul>
       <button @click="generarPDF">Generar PDF</button>

@@ -24,10 +24,31 @@
         <p>Decano: {{ decano }}</p>
         <p>No tienes permiso para editar esta información.</p>
       </div>
+
+      <button v-if="canEdit" @click="mostrarAgregarPeriodo = true">Agregar Período</button>
+      <div v-if="mostrarAgregarPeriodo">
+        <div class="input-group">
+          <label for="periodo">Período</label>
+          <select v-model="periodo" required>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="U">U</option>
+            <option value="E">E</option>
+            <option value="I">I</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="ano">Año</label>
+          <input type="text" v-model="ano" placeholder="Ingrese el año" required>
+        </div>
+        <div class="buttons">
+          <button type="button" @click="cancelarAgregarPeriodo">Cancelar</button>
+          <button type="button" @click="agregarPeriodo">Agregar</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
-
 
 <script>
 export default {
@@ -36,7 +57,10 @@ export default {
     return {
       director: '',
       decano: '',
-      canEdit: false
+      canEdit: false,
+      mostrarAgregarPeriodo: false,
+      periodo: 'A',
+      ano: ''
     }
   },
   created() {
@@ -76,13 +100,38 @@ export default {
         alert('Error al actualizar la información');
       }
     },
+    async agregarPeriodo() {
+      const response = await fetch('/api/agregar_periodo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          periodo: this.periodo,
+          ano: this.ano
+        })
+      });
+      if (response.ok) {
+        alert('Período agregado con éxito');
+        this.mostrarAgregarPeriodo = false;
+        this.periodo = 'A';
+        this.ano = '';
+      } else {
+        const errorData = await response.json();
+        alert('Error al agregar el período: ' + errorData.error);
+      }
+    },
+    cancelarAgregarPeriodo() {
+      this.mostrarAgregarPeriodo = false;
+      this.periodo = 'A';
+      this.ano = '';
+    },
     cancel() {
       this.$router.push('/main');
     }
   }
 }
 </script>
-
 
 <style scoped>
 body, html {

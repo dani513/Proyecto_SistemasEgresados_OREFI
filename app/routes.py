@@ -180,6 +180,22 @@ def actualizar_informacion():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/api/agregar_periodo', methods=['POST'])
+@login_required
+def agregar_periodo():
+    if current_user.p_acesso != 1:
+        return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
+    data = request.get_json()
+    try:
+        cod_periodo = data['periodo'] + str(data['ano'])
+        nuevo_periodo = Periodo(cod_periodo=cod_periodo, ano=data['ano'], periodo=data['periodo'])
+        db.session.add(nuevo_periodo)
+        db.session.commit()
+        return jsonify({'message': 'Período agregado con éxito'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 def read_template(file_path):
     with open(file_path, 'r') as file:
@@ -526,13 +542,13 @@ def generar_listado_promocion():
         titulo = "Cuadro de Promoción por el Promedio Aritmético"
     elif tipo_lista == "tipo3":
         orden = RegistroEgresado.nombre.asc()
-        campo = "nombre"
         titulo = "Cuadro de Promoción en Orden Alfabético"
     else:
         return jsonify({'error': 'Tipo de lista no válido'}), 400
 
     egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(orden).all()
     info = db.session.query(Informacion).first()
+    carrera = db.session.query(Carrera).filter_by(cod_carrera=codigo_carrera).first()
 
     if not egresados:
         return jsonify({'error': 'No se encontraron egresados'}), 404
@@ -570,7 +586,7 @@ def generar_listado_promocion():
     # Configurar el encabezado del listado
     c.setFont("Helvetica-Bold", 14)
     # Título de la lista
-    c.drawString(margin + 50, height - 150, f"EGRESADOS       {codigo_periodo}              Escuela de la promoción")
+    c.drawString(margin + 50, height - 150, f"EGRESADOS       {codigo_periodo}              {carrera.nombre}")
 
     # Líneas horizontales al principio de la lista
     c.line(margin, height - 180, width - margin, height - 180)
@@ -579,35 +595,51 @@ def generar_listado_promocion():
     y = height - 200  # Posición inicial
     c.setFont("Helvetica-Bold", 10)
     c.drawCentredString(margin + 25, y, "SECUENCIA")
-    c.drawCentredString(margin + 75, y, "CÉDULA")
-    c.drawString(margin + 120, y, "APELLIDO Y NOMBRE")
+    c.drawCentredString(margin + 85, y, "CÉDULA")
+    c.drawString(margin + 160, y, "APELLIDO Y NOMBRE")
     if tipo_lista != "tipo3":
-        c.drawCentredString(margin + 380, y, "PROMEDIO")
-    c.drawCentredString(margin + 440, y, "LUGAR")
+        c.drawCentredString(margin + 370, y, "PROMEDIO")
+        c.drawCentredString(margin + 440, y, "LUGAR")
     y -= 15
 
     c.setFont("Helvetica", 10)
 
-    # Calcular posiciones con empate
-    posicion_actual = 1
-    posiciones = {}
-    for idx, egresado in enumerate(egresados):
-        valor_campo = float(getattr(egresado, campo))
-        if valor_campo not in posiciones:
-            posiciones[valor_campo] = posicion_actual
-        posicion_actual += 1
+    if tipo_lista == "tipo3":
+        # Lista ordenada alfabéticamente por nombre, sin promedio ni lugar
+        for idx, egresado in enumerate(egresados, start=1):
+            c.drawCentredString(margin + 25, y, str(idx))
+            c.drawCentredString(margin + 85, y, egresado.cedula)
+            c.drawString(margin + 160, y, egresado.nombre)
+            y -= 15
+            if y < 50:  # Salto de página si se llena
+                c.showPage()
+                y = height - 50
+    else:
+        # Calcular posiciones con empate y ajustar la secuencia correctamente
+        posicion_actual = 1
+        posiciones = {}
+        for idx, egresado in enumerate(egresados):
+            valor_campo = float(getattr(egresado, campo))
+            if valor_campo not in posiciones:
+                posiciones[valor_campo] = posicion_actual
+                posicion_actual += 1
 
-    for idx, egresado in enumerate(egresados, start=1):
-        c.drawCentredString(margin + 25, y, str(idx))
-        c.drawCentredString(margin + 75, y, egresado.cedula)
-        c.drawString(margin + 120, y, egresado.nombre)
-        if tipo_lista != "tipo3":
-            c.drawCentredString(margin + 380, y, str(float(getattr(egresado, campo))))
-        c.drawCentredString(margin + 440, y, str(posiciones[float(getattr(egresado, campo))]))
-        y -= 15
-        if y < 50:  # Salto de página si se llena
-            c.showPage()
-            y = height - 50
+        secuencia_actual = 1
+        for idx, egresado in enumerate(egresados):
+            valor_campo = float(getattr(egresado, campo))
+            if idx > 0 and valor_campo != float(getattr(egresados[idx-1], campo)):
+                secuencia_actual += 1
+
+            c.drawCentredString(margin + 25, y, str(secuencia_actual))
+            c.drawCentredString(margin + 85, y, egresado.cedula)
+            c.drawString(margin + 160, y, egresado.nombre)
+            if tipo_lista != "tipo3":
+                c.drawCentredString(margin + 370, y, str(valor_campo))
+            c.drawCentredString(margin + 440, y, str(posiciones[valor_campo]))
+            y -= 15
+            if y < 50:  # Salto de página si se llena
+                c.showPage()
+                y = height - 50
 
     # Añadir un pequeño espacio después del último egresado
     y -= 10
@@ -618,7 +650,7 @@ def generar_listado_promocion():
     # Añadir el promedio general, nombres del decano y director
     if tipo_lista != "tipo3":
         c.setFont("Helvetica", 10)
-        c.drawCentredString(width - margin - 170, y - 20, f"PROMEDIO GENERAL: {promedio_general:.3f}")
+        c.drawString(width - margin - 200, y - 20, f"PROMEDIO GENERAL: {promedio_general:.3f}")
 
     c.drawString(margin + 10, y - 50, f"{info.director}")
     c.drawString(margin + 10, y - 70, "Director(a) - OREFI")
