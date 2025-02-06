@@ -2,7 +2,6 @@
   <div class="edit-graduate">
     <div class="header">
       <img src="@/assets/logo1.png" alt="Logo 1" class="logo">
-
     </div>
     <div class="form-box">
       <h1>Buscar y Editar Egresado</h1>
@@ -37,18 +36,18 @@
             </div>
           </div>
 
-          <div class = "form-row">
+          <div class="form-row">
             <div class="input-group">
               <label for="num_periodo">Número de Período</label>
               <input type="text" v-model="egresado.num_periodo">
             </div>
-            <div class ="input-group">
+            <div class="input-group">
               <label for="num_periodo">Número de Período</label>
               <input type="text" v-model="egresado.num_periodo">
             </div>
           </div>
 
-          <div class = "form-row">
+          <div class="form-row">
             <div class="input-group">
               <label for="aa">AA</label>
               <input type="text" v-model="egresado.aa">
@@ -59,7 +58,7 @@
             </div>
           </div>
 
-          <div class = "form-row">
+          <div class="form-row">
             <div class="input-group">
               <label for="pa">PA</label>
               <input type="text" v-model="egresado.pa">
@@ -69,8 +68,8 @@
               <input type="text" v-model="egresado.rendimiento">
             </div>
           </div>
-  
-          <div class = "form-row">
+
+          <div class="form-row">
             <div class="input-group">
               <label for="fecha_grado">Fecha de Grado</label>
               <input type="date" v-model="egresado.fecha_grado">
@@ -98,7 +97,13 @@ export default {
   },
   methods: {
     async searchGraduate() {
-      const response = await fetch(`/api/consultar?cedula=${this.cedula}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/consultar?cedula=${this.cedula}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
       if (response.ok) {
         const egresados = await response.json();
         if (egresados.length > 0) {
@@ -111,10 +116,12 @@ export default {
       }
     },
     async editGraduate() {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/editar/${this.egresado.id}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify(this.egresado)
       });
@@ -131,7 +138,6 @@ export default {
   }
 }
 </script>
-
 
 <style scoped>
 body, html {

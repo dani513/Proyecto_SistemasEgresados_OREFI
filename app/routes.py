@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session, send_file
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session, send_file, current_app
 from flask_login import login_user, logout_user, current_user, login_required
 from app import db
 from app.models import Usuario, RegistroEgresado, Informacion, Carrera, Periodo
@@ -14,11 +14,36 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
 from PIL import Image
 import io
 import os
-import datetime
 from app.utils import convertir_fecha_a_texto, numero_a_ordinal, numero_a_texto
+import jwt
+import datetime
+from datetime import timedelta, datetime
+from functools import wraps
 
 
 bp = Blueprint('main', __name__)
+
+# decorador para verificar token
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token no proporcionado'}), 403
+        
+        try:
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user_id = data['user_id']
+            current_user = Usuario.query.get(current_user_id)
+            if not current_user:
+                return jsonify({'error': 'Usuario no encontrado'}), 403
+        except Exception as e:
+            return jsonify({'error': str(e)}), 403
+        
+        return f(current_user, *args, **kwargs)
+    
+    return decorated
+
 
 @bp.route('/')
 def index():
@@ -35,23 +60,33 @@ def login():
     
     if user and user.check_password(password):
         login_user(user)  # Autenticar al usuario
-        session['user_id'] = user.id
-        return jsonify({'message': 'Inicio de sesión exitoso'}), 200
+
+        # Generar el token JWT
+        token = jwt.encode({
+            'user_id': user.id,
+            'exp': datetime.utcnow() + timedelta(hours=1)  # Token expira en 1 hora
+        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        
+        return jsonify({'token': token}), 200
     else:
         return jsonify({'error': 'Usuario o contraseña incorrectos o acceso no permitido'}), 401
 
+@bp.route('/api/protegido', methods=['GET'])
+@token_required
+def protegido(current_user):
+    return jsonify({'message': 'Acceso permitido', 'user_id': current_user.id}), 200
 
 @bp.route('/api/logout', methods=['POST'])
-@login_required
-def logout():
+@token_required
+def logout(current_user):
     logout_user()
     session.pop('user_id', None)
     return jsonify({'message': 'Sesión cerrada'}), 200
 
 
 @bp.route('/api/agregar', methods=['POST'])
-@login_required
-def agregar_egresado():
+@token_required
+def agregar_egresado(current_user):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
 
@@ -80,8 +115,8 @@ def agregar_egresado():
 
 
 @bp.route('/api/consultar', methods=['GET'])
-@login_required
-def consultar_egresados():
+@token_required
+def consultar_egresados(current_user):
     codigo_carrera = request.args.get('codigo_carrera')
     cedula = request.args.get('cedula')
     nombre = request.args.get('nombre')
@@ -102,15 +137,16 @@ def consultar_egresados():
 
     return jsonify([e.to_dict() for e in egresados])
 
+
 @bp.route('/api/get-username', methods=['GET'])
-@login_required
-def get_username():
+@token_required
+def get_username(current_user):
     return jsonify({'username': current_user.nombre}), 200
 
 
 @bp.route('/api/eliminar/<int:id>', methods=['POST'])
-@login_required
-def eliminar(id):
+@token_required
+def eliminar(current_user, id):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
     egresado = RegistroEgresado.query.get_or_404(id)
@@ -118,15 +154,17 @@ def eliminar(id):
     db.session.commit()
     return jsonify({'message': 'Egresado eliminado con éxito'}), 200
 
+
 @bp.route('/api/consultar/<int:id>', methods=['GET'])
-@login_required
-def consultar_egresado(id):
+@token_required
+def consultar_egresado(current_user, id):
     egresado = RegistroEgresado.query.get_or_404(id)
     return jsonify(egresado.to_dict())
 
+
 @bp.route('/api/editar/<int:id>', methods=['POST'])
-@login_required
-def editar(id):
+@token_required
+def editar(current_user, id):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
     egresado = RegistroEgresado.query.get_or_404(id)
@@ -150,12 +188,13 @@ def editar(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-    
-# director  y de decano 
+
+
+# director y decano 
 
 @bp.route('/api/informacion', methods=['GET'])
-@login_required
-def obtener_informacion():
+@token_required
+def obtener_informacion(current_user):
     info = db.session.query(Informacion).first()
     data = {
         'director': info.director,
@@ -164,9 +203,10 @@ def obtener_informacion():
     }
     return jsonify(data)
 
+
 @bp.route('/api/actualizar_informacion', methods=['POST'])
-@login_required
-def actualizar_informacion():
+@token_required
+def actualizar_informacion(current_user):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
     data = request.get_json()
@@ -180,9 +220,10 @@ def actualizar_informacion():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @bp.route('/api/agregar_periodo', methods=['POST'])
-@login_required
-def agregar_periodo():
+@token_required
+def agregar_periodo(current_user):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
     data = request.get_json()
@@ -196,10 +237,6 @@ def agregar_periodo():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
-def read_template(file_path):
-    with open(file_path, 'r') as file:
-        return file.read()
 ##*********************************************************************************************************
 
 #(listo) carta tipo 1: promedio PONDERADO APROBATORIO, posicion respecto a la promocion (puesto ponderado aprobatorio)
@@ -391,7 +428,7 @@ def generar_carta():
         promedio_promo = total_ag / total_integrantes if total_integrantes > 0 else 0
 
     # Obtener la fecha actual en formato texto
-    fecha_actual = datetime.datetime.now()
+    fecha_actual = datetime.now()
     fecha_actual_texto = convertir_fecha_a_texto(fecha_actual)
 
     # Verificar que las claves existen en `egresado`

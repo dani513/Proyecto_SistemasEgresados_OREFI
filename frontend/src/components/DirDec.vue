@@ -68,7 +68,13 @@ export default {
   },
   methods: {
     async fetchInfo() {
-      const response = await fetch('/api/informacion');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/informacion', {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         this.director = data.director;
@@ -83,10 +89,12 @@ export default {
         alert('No tienes permiso para actualizar esta información');
         return;
       }
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/actualizar_informacion', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify({
           director: this.director,
@@ -101,10 +109,12 @@ export default {
       }
     },
     async agregarPeriodo() {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/agregar_periodo', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify({
           periodo: this.periodo,

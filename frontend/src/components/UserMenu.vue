@@ -28,9 +28,15 @@ export default {
       alert('Cambiar Contraseña');
     },
     logout() {
-      // Lógica para cerrar sesión
+      // Obtener el token desde localStorage
+      const token = localStorage.getItem('token');
+
+      // Incluir el token en los encabezados de la solicitud
       fetch('/api/logout', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': token
+        }
       }).then(() => {
         this.$router.push('/login');
       });

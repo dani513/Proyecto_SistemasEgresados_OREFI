@@ -41,8 +41,16 @@ export default {
   },
   methods: {
     fetchUsername() {
-      // Simulación de obtener el nombre de usuario, reemplaza con tu lógica
-      fetch('/api/get-username')
+      // Obtener el token desde localStorage
+      const token = localStorage.getItem('token');
+
+      // Incluir el token en los encabezados de la solicitud
+      fetch('/api/get-username', {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      })
         .then(response => response.json())
         .then(data => {
           this.username = data.username;

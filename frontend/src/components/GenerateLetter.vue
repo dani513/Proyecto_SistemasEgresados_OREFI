@@ -21,13 +21,10 @@
         <div class="buttons">
           <button @click="generateLetter('carta_tipo_1')">Puesto Pond_Apro</button>
           <button @click="generateLetter('carta_tipo_2')">Puesto Arit_ Apro</button>
-
           <button @click="generateLetter('carta_tipo_3')">Puesto Pond_ Apro_rend</button>
           <button @click="generateLetter('carta_tipo_4')">Puesto Arit_ Apro_rend</button>
-
           <button @click="generateLetter('carta_tipo_5')">Puesto Arit_gen_escuela</button>
           <button @click="generateLetter('carta_tipo_6')">Puesto Arit_gen_facultad</button>
-
         </div>
       </div>
     </div>
@@ -45,7 +42,13 @@ export default {
   },
   methods: {
     async searchGraduate() {
-      const response = await fetch(`/api/consultar?cedula=${this.cedula}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/consultar?cedula=${this.cedula}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
       if (response.ok) {
         const egresados = await response.json();
         if (egresados.length > 0) {
@@ -58,8 +61,9 @@ export default {
       }
     },
     generateLetter(tipoCarta) {
+      const token = localStorage.getItem('token');
       const url = `/api/generar-carta?cedula=${this.egresado.cedula}&tipoCarta=${tipoCarta}`;
-      window.open(url, '_blank');
+      window.open(url, '_blank', `Authorization=${token}`);
     }
   }
 }

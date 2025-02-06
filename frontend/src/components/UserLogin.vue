@@ -20,7 +20,6 @@
   </div>
 </template>
 
-
 <script>
 export default {
   name: 'UserLogin',
@@ -40,15 +39,31 @@ export default {
         body: JSON.stringify({ username: this.username, password: this.password })
       });
       if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
         this.$router.push('/main');
       } else {
         alert('Usuario o contraseña incorrectos');
+      }
+    },
+    async fetchProtectedData() {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/protegido', {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data.message);
+      } else {
+        alert('Error al acceder a datos protegidos');
       }
     }
   }
 }
 </script>
-
 
 <style scoped>
 body, html {

@@ -71,7 +71,13 @@ export default {
   methods: {
     async cargarCarreras() {
       try {
-        const response = await fetch('/api/carreras');
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/carreras', {
+          method: 'GET',
+          headers: {
+            'Authorization': token
+          }
+        });
         if (response.ok) {
           this.carreras = await response.json();
         } else {
@@ -83,7 +89,13 @@ export default {
     },
     async cargarAnos() {
       try {
-        const response = await fetch('/api/periodos');
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/periodos', {
+          method: 'GET',
+          headers: {
+            'Authorization': token
+          }
+        });
         if (response.ok) {
           const periodos = await response.json();
           this.anos = [...new Set(periodos.map(periodo => periodo.ano))];
@@ -95,9 +107,15 @@ export default {
       }
     },
     async buscarEgresados() {
+      const token = localStorage.getItem('token');
       const codigoPeriodo = `${this.periodoSeleccionado}${this.anoSeleccionado}`;
       try {
-        const response = await fetch(`/api/listado-promocion?codigo_carrera=${this.codigoCarrera}&codigo_periodo=${codigoPeriodo}`);
+        const response = await fetch(`/api/listado-promocion?codigo_carrera=${this.codigoCarrera}&codigo_periodo=${codigoPeriodo}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': token
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.error) {
@@ -116,9 +134,10 @@ export default {
       }
     },
     generarPDF() {
+      const token = localStorage.getItem('token');
       const codigoPeriodo = `${this.periodoSeleccionado}${this.anoSeleccionado}`;
       const url = `/api/generar-listado-promocion?codigo_carrera=${this.codigoCarrera}&codigo_periodo=${codigoPeriodo}&tipo_lista=${this.tipoLista}`;
-      window.open(url, '_blank');
+      window.open(url, '_blank', `Authorization=${token}`);
     }
   }
 };

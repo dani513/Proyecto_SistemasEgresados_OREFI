@@ -46,6 +46,7 @@
     </div>
   </div>
 </template>
+
 <script>
 export default {
   name: 'SelectSearchType',
@@ -71,6 +72,7 @@ export default {
       this.selectedEgresado = null;
     },
     async consultGraduate() {
+      const token = localStorage.getItem('token');
       let queryParams = '';
       if (this.searchType === 'codigo_carrera') {
         queryParams = `codigo_carrera=${this.codigo_carrera}`;
@@ -82,7 +84,12 @@ export default {
         queryParams = `codigo_periodo=${this.codigo_periodo}`;
       }
 
-      const response = await fetch(`/api/consultar?${queryParams}`);
+      const response = await fetch(`/api/consultar?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token
+        }
+      });
       if (response.ok) {
         this.egresados = await response.json();
       } else {
@@ -93,8 +100,12 @@ export default {
       this.selectedEgresado = egresado;
     },
     async deleteEgresado(id) {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/eliminar/${id}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': token
+        }
       });
       if (response.ok) {
         alert('Egresado eliminado con éxito');
@@ -107,6 +118,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 body, html {
   margin: 0;

@@ -87,10 +87,12 @@ export default {
   methods: {
     async addGraduate() {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch('/api/agregar', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': token
           },
           body: JSON.stringify({
             ag: this.ag,
@@ -162,8 +164,6 @@ body, html {
   display: flex;
   justify-content: center;
 }
-
-
 
 .form-box {
   background: rgba(0, 0, 102, 0.8); /* Fondo semitransparente azul oscuro */
