@@ -23,6 +23,25 @@ from functools import wraps
 
 bp = Blueprint('main', __name__)
 
+#def token_required(f):
+#    @wraps(f)
+#    def decorated(*args, **kwargs):
+#        token = None
+#        if 'Authorization' in request.headers:
+#            token = request.headers['Authorization'].split(" ")[1]
+#        
+#        if not token:
+#            return jsonify({'error': 'Token is missing!'}), 401
+#
+#        try:
+#            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+#            current_user = Usuario.query.filter_by(id=data['user_id']).first()
+#        except:
+#            return jsonify({'error': 'Token is invalid!'}), 401
+#
+#        return f(current_user, *args, **kwargs)
+#    return decorated
+
 # decorador para verificar token
 def token_required(f):
     @wraps(f)
@@ -71,6 +90,8 @@ def login():
     else:
         return jsonify({'error': 'Usuario o contraseña incorrectos o acceso no permitido'}), 401
 
+
+
 @bp.route('/api/protegido', methods=['GET'])
 @token_required
 def protegido(current_user):
@@ -82,7 +103,6 @@ def logout(current_user):
     logout_user()
     session.pop('user_id', None)
     return jsonify({'message': 'Sesión cerrada'}), 200
-
 
 @bp.route('/api/agregar', methods=['POST'])
 @token_required
@@ -113,7 +133,6 @@ def agregar_egresado(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
 @bp.route('/api/consultar', methods=['GET'])
 @token_required
 def consultar_egresados(current_user):
@@ -137,12 +156,10 @@ def consultar_egresados(current_user):
 
     return jsonify([e.to_dict() for e in egresados])
 
-
 @bp.route('/api/get-username', methods=['GET'])
 @token_required
 def get_username(current_user):
     return jsonify({'username': current_user.nombre}), 200
-
 
 @bp.route('/api/eliminar/<int:id>', methods=['POST'])
 @token_required
@@ -154,13 +171,18 @@ def eliminar(current_user, id):
     db.session.commit()
     return jsonify({'message': 'Egresado eliminado con éxito'}), 200
 
-
 @bp.route('/api/consultar/<int:id>', methods=['GET'])
 @token_required
 def consultar_egresado(current_user, id):
     egresado = RegistroEgresado.query.get_or_404(id)
-    return jsonify(egresado.to_dict())
+    carrera = egresado.carrera
+    periodo = egresado.periodo
 
+    egresado_info = egresado.to_dict()
+    egresado_info['carrera'] = carrera.to_dict()
+    egresado_info['periodo'] = periodo.to_dict()
+
+    return jsonify(egresado_info)
 
 @bp.route('/api/editar/<int:id>', methods=['POST'])
 @token_required
@@ -182,7 +204,6 @@ def editar(current_user, id):
         egresado.rendimiento = data['rendimiento']
         egresado.fecha_grado = data['fecha_grado']
         
-        # Añade más campos según sea necesario
         db.session.commit()
         return jsonify({'message': 'Egresado editado con éxito'}), 200
     except Exception as e:
@@ -191,7 +212,6 @@ def editar(current_user, id):
 
 
 # director y decano 
-
 @bp.route('/api/informacion', methods=['GET'])
 @token_required
 def obtener_informacion(current_user):
@@ -202,7 +222,6 @@ def obtener_informacion(current_user):
         'can_edit': current_user.p_acesso == 1
     }
     return jsonify(data)
-
 
 @bp.route('/api/actualizar_informacion', methods=['POST'])
 @token_required
@@ -219,7 +238,6 @@ def actualizar_informacion(current_user):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
 
 @bp.route('/api/agregar_periodo', methods=['POST'])
 @token_required
@@ -257,23 +275,22 @@ def generar_carta():
     
     egresado = RegistroEgresado.query.filter_by(cedula=cedula).first()
     info = db.session.query(Informacion).first()
-    carrera = db.session.query(Carrera).filter_by(cod_carrera=egresado.cod_carrera).first()
-    periodo = db.session.query(Periodo).filter_by(cod_periodo=egresado.cod_periodo).first()
+    carrera = egresado.carrera
+    periodo = egresado.periodo
     usuario = current_user.nombre  # Obtener el nombre de usuario del usuario que imprimió la carta
 
     if not egresado or not info or not carrera or not periodo:
         return jsonify({'error': 'Datos no encontrados'}), 404
 
-    # Obtener el grupo de promoción, escuela o facultad sengun la carta selecionada
-    
-    if tipo_carta == "carta_tipo_1": # trabaja con pa
-        
+    # Obtener el grupo de promoción, escuela o facultad según la carta seleccionada
+    if tipo_carta == "carta_tipo_1":  # trabaja con pa
         promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.pa.desc()).all()
+        
         # Calcular las posiciones y el promedio de pa
         posiciones = {}
         posicion_actual = 1
-        
         total_pa = 0.0  # Asegurarnos de que el total es un número
+        
         for index, estudiante in enumerate(promocion):
             pa_val = float(estudiante.pa)  # Convertir pa a número
             total_pa += pa_val
@@ -285,13 +302,13 @@ def generar_carta():
         
         # Obtener la posición del egresado en la promoción
         posicion = posiciones.get(float(egresado.pa), None)  # Convertir pa a número
-        pos_escrita = numero_a_ordinal(posicion) #escribir de forma ordinal
+        pos_escrita = numero_a_ordinal(posicion)  # escribir de forma ordinal
         # Número total de integrantes en la promoción
         total_integrantes = len(promocion)
 
         # Calcular el promedio de pa
-        promedio_promo = total_pa / total_integrantes if total_integrantes > 0 else 0
-            
+        promedio_promo = total_pa / total_integrantes if total_integrantes > 0 else 0            
+    
     
     elif tipo_carta == "carta_tipo_2": # trabaja con aa
         promocion = RegistroEgresado.query.filter_by(cod_carrera=egresado.cod_carrera, cod_periodo=egresado.cod_periodo).order_by(RegistroEgresado.aa.desc()).all()
@@ -426,7 +443,6 @@ def generar_carta():
 
         # Calcular el promedio de aa
         promedio_promo = total_ag / total_integrantes if total_integrantes > 0 else 0
-
     # Obtener la fecha actual en formato texto
     fecha_actual = datetime.now()
     fecha_actual_texto = convertir_fecha_a_texto(fecha_actual)
@@ -453,7 +469,7 @@ def generar_carta():
         cod_periodo=f"{periodo.periodo} del año {periodo.ano}",  # Usar el año y el período
         cod_carrera=carrera.nombre,  # Usar el nombre de la carrera
         posicion=posicion,  # Posición en la promoción, escuela o facultad
-        pos_escrita=pos_escrita, #posicion escrita de forma ordinal
+        pos_escrita=pos_escrita,  # Posición escrita de forma ordinal
         total_integrantes=total_integrantes,  # Total de integrantes en la promoción
         promedio_promo=promedio_promo,  # Promedio de pa en la promoción
         director=info.director,
@@ -585,7 +601,7 @@ def generar_listado_promocion():
 
     egresados = RegistroEgresado.query.filter_by(cod_carrera=codigo_carrera, cod_periodo=codigo_periodo).order_by(orden).all()
     info = db.session.query(Informacion).first()
-    carrera = db.session.query(Carrera).filter_by(cod_carrera=codigo_carrera).first()
+    carrera = Carrera.query.get(codigo_carrera)
 
     if not egresados:
         return jsonify({'error': 'No se encontraron egresados'}), 404
@@ -689,10 +705,11 @@ def generar_listado_promocion():
         c.setFont("Helvetica", 10)
         c.drawString(width - margin - 200, y - 20, f"PROMEDIO GENERAL: {promedio_general:.3f}")
 
-    c.drawString(margin + 10, y - 50, f"{info.director}")
-    c.drawString(margin + 10, y - 70, "Director(a) - OREFI")
-    c.drawString(margin + 10, y - 110, f"{info.decano}")
-    c.drawString(margin + 10, y - 130, "Decano - Facultad de Ingeniería")
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(width / 2, y - 70, f"{info.director}")
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y - 90, "Director(a) - OREFI")
+
     c.drawString(margin + 10, y - 170, titulo)
 
     c.showPage()
@@ -700,3 +717,12 @@ def generar_listado_promocion():
 
     buffer.seek(0)
     return send_file(buffer, as_attachment=False, mimetype='application/pdf', download_name="Listado_Promocion.pdf")
+
+#[
+#    Paragraph(f"<b>{info.decano}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=12, fontName='Times-Roman')),
+#    Paragraph(f"<b>{info.director}</b>", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=12, fontName='Times-Roman'))
+#],
+#[
+#    Paragraph("Decano - Facultad de Ingeniería", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman')),
+#    Paragraph("Director - OREFI", ParagraphStyle('Centered', alignment=TA_CENTER, fontSize=10, fontName='Times-Roman'))
+#]

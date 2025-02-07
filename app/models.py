@@ -7,9 +7,11 @@ class CambioNumerico(db.Model):
     cadena = db.Column(db.String(255))
 
 class Carrera(db.Model):
-    cod_carrera = db.Column(db.Integer, primary_key=True, default=0)
+    cod_carrera = db.Column(db.Integer, primary_key=True, autoincrement=False)
     nombre = db.Column(db.String(50))
-    
+    egresados = db.relationship('RegistroEgresado', backref='carrera', lazy=True)
+    estado_periodo = db.relationship('EstadoPeriodo', backref='carrera', lazy=True)
+
     def to_dict(self):
         return {
             'cod_carrera': self.cod_carrera,
@@ -18,8 +20,8 @@ class Carrera(db.Model):
 
 class EstadoPeriodo(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    cod_periodo = db.Column(db.String(5), nullable=False)
-    cod_carrera = db.Column(db.String(50), nullable=False)
+    cod_periodo = db.Column(db.String(5), db.ForeignKey('periodo.cod_periodo'), nullable=False)
+    cod_carrera = db.Column(db.Integer, db.ForeignKey('carrera.cod_carrera'), nullable=False)
     cod_estado = db.Column(db.String(7), nullable=False)
 
 class Informacion(db.Model):
@@ -34,7 +36,9 @@ class Periodo(db.Model):
     cod_periodo = db.Column(db.String(5), primary_key=True, nullable=False, default='')
     ano = db.Column(db.Integer)
     periodo = db.Column(db.String(1))
-    
+    estado_periodo = db.relationship('EstadoPeriodo', backref='periodo', lazy=True)
+    egresados = db.relationship('RegistroEgresado', backref='periodo', lazy=True)
+
     def to_dict(self):
         return {
             'cod_periodo': self.cod_periodo,
@@ -50,8 +54,8 @@ class RegistroEgresado(db.Model):
     pa = db.Column(db.String(10))
     rendimiento = db.Column(db.Float)
     fecha_grado = db.Column(db.Date)
-    cod_carrera = db.Column(db.String(10))
-    cod_periodo = db.Column(db.String(10))
+    cod_carrera = db.Column(db.Integer, db.ForeignKey('carrera.cod_carrera'))
+    cod_periodo = db.Column(db.String(5), db.ForeignKey('periodo.cod_periodo'))
     num_periodo = db.Column(db.String(10))
     cedula = db.Column(db.String(20))
     nombre = db.Column(db.String(50))
@@ -71,8 +75,6 @@ class RegistroEgresado(db.Model):
             'cedula': self.cedula,
             'nombre': self.nombre
         }
-
-
 
 class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -101,4 +103,3 @@ class Usuario(db.Model, UserMixin):
 
     def get_id(self):
         return str(self.id)
-
