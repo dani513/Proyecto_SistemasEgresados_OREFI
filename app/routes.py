@@ -255,6 +255,22 @@ def agregar_periodo(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
+@bp.route('/api/agregar_carrera', methods=['POST'])
+@token_required
+def agregar_periodo(current_user):
+    if current_user.p_acesso != 1:
+        return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
+    data = request.get_json()
+    try:
+        nueva_carrera = Carrera(cod_periodo=data['cod_carrera'], nombre=data['nombre'])
+        db.session.add(nueva_carrera)
+        db.session.commit()
+        return jsonify({'message': 'Carrera agregada con éxito'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 ##*********************************************************************************************************
 
 #(listo) carta tipo 1: promedio PONDERADO APROBATORIO, posicion respecto a la promocion (puesto ponderado aprobatorio)
