@@ -69,7 +69,7 @@ def index():
     return render_template('index.html')
 
 
-@bp.route('/api/login', methods=['POST'])
+@bp.route('/api/login', methods=['POST'])     # login 
 def login():
     data = request.get_json()
     username = data.get('username')
@@ -97,14 +97,14 @@ def login():
 def protegido(current_user):
     return jsonify({'message': 'Acceso permitido', 'user_id': current_user.id}), 200
 
-@bp.route('/api/logout', methods=['POST'])
+@bp.route('/api/logout', methods=['POST'])     #  cerrar sesion 
 @token_required
 def logout(current_user):
     logout_user()
     session.pop('user_id', None)
     return jsonify({'message': 'Sesión cerrada'}), 200
 
-@bp.route('/api/agregar', methods=['POST'])
+@bp.route('/api/agregar', methods=['POST'])     # agregar egresado
 @token_required
 def agregar_egresado(current_user):
     if current_user.p_acesso != 1:
@@ -133,7 +133,7 @@ def agregar_egresado(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/api/consultar', methods=['GET'])
+@bp.route('/api/consultar', methods=['GET'])     # consultar datos egresado
 @token_required
 def consultar_egresados(current_user):
     codigo_carrera = request.args.get('codigo_carrera')
@@ -156,12 +156,12 @@ def consultar_egresados(current_user):
 
     return jsonify([e.to_dict() for e in egresados])
 
-@bp.route('/api/get-username', methods=['GET'])
+@bp.route('/api/get-username', methods=['GET'])   # devolver nombre de usuario actualmente autenticado
 @token_required
 def get_username(current_user):
     return jsonify({'username': current_user.nombre}), 200
 
-@bp.route('/api/eliminar/<int:id>', methods=['POST'])
+@bp.route('/api/eliminar/<int:id>', methods=['POST'])     # eliminar egreaso 
 @token_required
 def eliminar(current_user, id):
     if current_user.p_acesso != 1:
@@ -171,7 +171,7 @@ def eliminar(current_user, id):
     db.session.commit()
     return jsonify({'message': 'Egresado eliminado con éxito'}), 200
 
-@bp.route('/api/consultar/<int:id>', methods=['GET'])
+@bp.route('/api/consultar/<int:id>', methods=['GET'])     # consultar egresado con ID 
 @token_required
 def consultar_egresado(current_user, id):
     egresado = RegistroEgresado.query.get_or_404(id)
@@ -184,7 +184,7 @@ def consultar_egresado(current_user, id):
 
     return jsonify(egresado_info)
 
-@bp.route('/api/editar/<int:id>', methods=['POST'])
+@bp.route('/api/editar/<int:id>', methods=['POST'])    # editar datos de egresado
 @token_required
 def editar(current_user, id):
     if current_user.p_acesso != 1:
@@ -212,7 +212,7 @@ def editar(current_user, id):
 
 
 # director y decano 
-@bp.route('/api/informacion', methods=['GET'])
+@bp.route('/api/informacion', methods=['GET'])    # mostrar datos de decano y director 
 @token_required
 def obtener_informacion(current_user):
     info = db.session.query(Informacion).first()
@@ -223,7 +223,7 @@ def obtener_informacion(current_user):
     }
     return jsonify(data)
 
-@bp.route('/api/actualizar_informacion', methods=['POST'])
+@bp.route('/api/actualizar_informacion', methods=['POST'])     # editar datos de decano y director 
 @token_required
 def actualizar_informacion(current_user):
     if current_user.p_acesso != 1:
@@ -239,7 +239,7 @@ def actualizar_informacion(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/api/agregar_periodo', methods=['POST'])
+@bp.route('/api/agregar_periodo', methods=['POST'])     # agregar nuevo periodo
 @token_required
 def agregar_periodo(current_user):
     if current_user.p_acesso != 1:
@@ -256,9 +256,9 @@ def agregar_periodo(current_user):
         return jsonify({'error': str(e)}), 500
 
 
-@bp.route('/api/agregar_carrera', methods=['POST'])
+@bp.route('/api/agregar_carrera', methods=['POST'])     # agregar nueva carrera 
 @token_required
-def agregar_periodo(current_user):
+def agregar_carrera(current_user):
     if current_user.p_acesso != 1:
         return jsonify({'error': 'No tienes permiso para realizar esta acción.'}), 403
     data = request.get_json()
@@ -283,7 +283,7 @@ def agregar_periodo(current_user):
 #() carta tipo 6: promedio ARITMETICO GENERAL, posicion respecto a todos los graduados en la FACULTAD (puesto aritmetico general en la facultad)
 
 
-@bp.route('/api/generar-carta', methods=['GET'])
+@bp.route('/api/generar-carta', methods=['GET'])   # generar  carta de constancia de egresado
 @login_required
 def generar_carta():
     cedula = request.args.get('cedula')
@@ -562,20 +562,20 @@ def read_template(file_path):
 # lista 3: Listado alfabetico
 
 
-@bp.route('/api/carreras', methods=['GET'])
+@bp.route('/api/carreras', methods=['GET'])     # consaulta de carreras 
 @login_required
 def obtener_carreras():
     carreras = Carrera.query.all()
     return jsonify([carrera.to_dict() for carrera in carreras])
 
-@bp.route('/api/periodos', methods=['GET'])
+@bp.route('/api/periodos', methods=['GET'])      # consulta de periodos 
 @login_required
 def obtener_periodos():
     periodos_permitidos = ['A', 'B', 'U', 'E', 'I']
     periodos = Periodo.query.filter(Periodo.periodo.in_(periodos_permitidos)).all()
     return jsonify([periodo.to_dict() for periodo in periodos])
 
-@bp.route('/api/listado-promocion', methods=['GET'])
+@bp.route('/api/listado-promocion', methods=['GET'])     # listado de promocion
 @login_required
 def listado_promocion():
     codigo_carrera = request.args.get('codigo_carrera')
@@ -591,7 +591,7 @@ def listado_promocion():
 
     return jsonify([e.to_dict() for e in egresados])
 
-@bp.route('/api/generar-listado-promocion', methods=['GET'])
+@bp.route('/api/generar-listado-promocion', methods=['GET'])      # generar listados de promcion segun la opcion 
 @login_required
 def generar_listado_promocion():
     codigo_carrera = request.args.get('codigo_carrera')
